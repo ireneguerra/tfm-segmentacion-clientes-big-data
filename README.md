@@ -97,8 +97,10 @@ El flujo actual está organizado como una secuencia de notebooks: deben ejecutar
 1. Ejecutar los notebooks de `code/01_data_understanding/`.
 2. Generar las representaciones simples y ampliadas desde `code/02_data_preparation/`.
 3. Preparar las variables para el clustering:
-   - Ejecutar `code/02_data_preparation/variable_distributions.ipynb` como análisis previo de las distribuciones.
-   - Ejecutar `code/02_data_preparation/scaling.ipynb`. Este notebook ya contiene las reglas de transformación (`log1p`, raíz cuadrada o Yeo–Johnson) y las aplica automáticamente; después estandariza las variables con `StandardScaler`.
+   - Ejecutar los notebooks `01_rfm_hym.ipynb` y `01_rfa_instacart.ipynb` para generar las representaciones base de cada dataset.
+   - Ejecutar `02_extended_hym.ipynb` y `02_extended_instacart.ipynb` para construir las variables ampliadas.
+   - Ejecutar `03_variable_distributions.ipynb` como análisis previo de las distribuciones.
+   - Ejecutar `04_scaling.ipynb`. Este notebook ya contiene las reglas de transformación (`log1p`, raíz cuadrada o Yeo–Johnson) y las aplica automáticamente; después estandariza las variables con `StandardScaler`.
    - El notebook genera los CSV escalados de `scaled_data/`, que son los que utilizan los algoritmos de clustering. No es necesario transformar las variables manualmente.
 4. Ejecutar los notebooks de `code/03_modeling/` para obtener las métricas del estudio general.
 5. **Data Preparation iterativa — selección de variables:** ejecutar `code/04_iterative_data_preparation/feature_selection_study.ipynb`. Este notebook prueba distintos subconjuntos de variables con MiniBatch K-Means y genera los resultados de `results/feature_selection/`.
