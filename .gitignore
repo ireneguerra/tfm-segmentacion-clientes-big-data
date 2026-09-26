@@ -1,0 +1,24 @@
+# Datos de entrada, datasets intermedios y resultados exportados
+*.csv
+
+# Documentación local no destinada al repositorio
+*.md
+!/README.md
+CRISP_DM_REPORT.md
+**/CRISP_DM_REPORT.md
+PROJECT_DOCUMENTATION.md
+**/PROJECT_DOCUMENTATION.md
+
+# Entornos y cachés de Python/Jupyter
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Configuración local y archivos del sistema
+.env
+.DS_Store
+Thumbs.db
+
