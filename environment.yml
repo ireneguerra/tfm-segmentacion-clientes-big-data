@@ -1,0 +1,18 @@
+name: tfm-clustering
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.14
+  - numpy=1.26.4
+  - pandas=2.2.3
+  - matplotlib=3.9.2
+  - seaborn=0.13.2
+  - scikit-learn=1.5.2
+  - jupyterlab=4.2.5
+  - ipykernel=6.29.5
+  - pip=24.2
+  - pip:
+      - scikit-learn-extra==0.3.0
+      - scikit-fuzzy==0.5.0
+
