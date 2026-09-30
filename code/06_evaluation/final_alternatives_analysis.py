@@ -124,7 +124,7 @@ def concordance(assignments):
     for dataset in ["hym", "instacart"]:
         dataset_assignments = [x for x in assignments if x.attrs.get("dataset") == dataset]
         for a, b in combinations(dataset_assignments, 2):
-            ca, cb = a["configuration_id"], b["configuration_id"]
+            ca, cb = a["configuration_id"].iloc[0], b["configuration_id"].iloc[0]
             left = a.drop(columns="configuration_id").rename(columns={"cluster": "cluster_a"})
             right = b.drop(columns="configuration_id").rename(columns={"cluster": "cluster_b"})
             id_col = ID[dataset]
