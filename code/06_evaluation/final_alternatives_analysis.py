@@ -170,7 +170,11 @@ def figures(profiles, concordance_df):
 
 def main():
     summary, audit = verify_and_filter_validation()
-    sensitivity(summary)
+    # La sensibilidad debe conservar el universo del ranking original:
+    # 175 configuraciones por dataset. El CSV filtrado se usa únicamente
+    # para exportar la vista de las seis alternativas solicitadas.
+    full_summary = pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv")
+    sensitivity(full_summary)
     if not audit.found_in_existing_summary.all():
         raise RuntimeError("Faltan configuraciones solicitadas en los resultados existentes; revise requested_configuration_audit.csv")
     results, assignments = [], []
