@@ -27,7 +27,7 @@ data/
 └── instacart/
 ```
 
-Las carpetas de datos intermedios (`data_without_nulls/`, `simple_datasets/`, `extended_datasets/` y `scaled_data/`) y `results/` se generan durante el flujo de trabajo y permanecen excluidas si contienen CSV. Los resultados se organizan localmente en `results/clustering/`, `results/feature_selection/`, `results/multimodel/` y `results/profiles/`.
+Las carpetas de datos intermedios (`data_without_nulls/`, `simple_datasets/`, `extended_datasets/` y `scaled_data/`) y `results/` se generan durante el flujo de trabajo y permanecen excluidas si contienen CSV. Los resultados se organizan localmente en `results/clustering/`, `results/feature_selection/`, `results/multimodel/`, `results/profiles/` y `results/final_alternatives/`.
 
 ### Organización y generación de `results/`
 
@@ -63,6 +63,20 @@ Contiene la validación de los subconjuntos seleccionados con los siete algoritm
 - `multi_model_algorithm_comparison.csv`: rendimiento y estabilidad agregados por algoritmo.
 - `multi_model_variable_comparison.csv`: presencia de variables en los rankings y efectos de las comparaciones de ablación.
 
+Estos archivos constituyen la validación multimodelo completa y se conservan como referencia. Sus rankings no deben interpretarse como una selección definitiva aislada cuando las diferencias sean pequeñas.
+
+#### `results/final_alternatives/`
+
+Contiene la comparación específica de las seis alternativas finales, generada por `code/06_evaluation/final_alternatives_analysis.py`. Esta carpeta complementa, sin sustituir, `results/multimodel/` y `results/profiles/`:
+
+- `validation_metrics_requested.csv` y `validation_detail_requested.csv`: copia filtrada y trazable de los resultados multimodelo existentes.
+- `ranking_sensitivity_ari_weights.csv`, `ranking_sensitivity_top10.csv` y `ranking_sensitivity_requested.csv`: sensibilidad del ranking al asignar al ARI un peso del 0 %, 10 % o 25 %.
+- `assignments_*.csv`, `profiles_*.csv` y `profiles_all_alternatives.csv`: asignaciones y perfiles del ajuste completo para cada alternativa.
+- `partition_concordance_ari.csv` y `partition_contingency_tables.csv`: concordancia entre configuraciones distintas y tablas de contingencia; no representan estabilidad entre semillas.
+- `interval_quality_by_cluster.csv`: frecuencia de pocos pedidos y ceros observados en las variables de intervalos, sin inferir imputaciones solo a partir de un cero.
+- `group_sizes_*.png` y `concordance_*.png`: figuras comparativas separadas por dataset.
+
+Los archivos anteriores siguen siendo útiles para documentar el estudio completo, sus semillas y el contexto de todos los candidatos. Los nuevos archivos se utilizan para la comparación final de alternativas.
 #### `results/profiles/`
 
 Contiene los perfiles finales de los segmentos, generados por `code/06_evaluation/02_best_clustering_interpretation.ipynb` después de seleccionar la configuración ganadora:
@@ -108,6 +122,7 @@ El flujo actual está organizado como una secuencia de notebooks: deben ejecutar
 7. **Evaluation:** ejecutar los notebooks de `code/06_evaluation/`:
    - `01_simple_vs_extended_clustering_comparison.ipynb`, que compara las métricas del modelado general y puede ejecutarse después de `03_modeling`.
    - `02_best_clustering_interpretation.ipynb`, que interpreta las configuraciones finales después de la validación multimodelo.
+   - `final_alternatives_analysis.py`, que compara las alternativas finales, recalcula la sensibilidad del ranking y genera perfiles y concordancias sin sobrescribir resultados anteriores.
 
 La secuencia debe interpretarse según el ciclo iterativo de CRISP-DM:
 
@@ -137,4 +152,3 @@ Las transformaciones, datasets intermedios y resultados CSV generados localmente
 ## Alcance
 
 Este repositorio contiene la parte experimental del TFM. Las métricas internas no sustituyen una validación de negocio y los datasets de H&M e Instacart deben obtenerse y citarse conforme a sus respectivas condiciones de uso.
-
