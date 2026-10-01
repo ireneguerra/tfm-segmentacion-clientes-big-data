@@ -25,7 +25,7 @@ Desarrollar y evaluar un procedimiento reproducible de segmentación no supervis
 
 1. Analizar la estructura, calidad y contenido de los datos transaccionales de H&M e Instacart.
 2. Construir una representación numérica de cada cliente a partir de su historial de compra.
-3. Comparar una representación básica RFM o RFA con otra ampliada mediante variables de cesta, regularidad, variedad y canal.
+3. Comparar una representación básica RFM o DFA con otra ampliada mediante variables de cesta, regularidad, variedad y canal.
 4. Aplicar transformaciones que reduzcan la asimetría y permitan comparar variables medidas en escalas diferentes.
 5. Evaluar siete algoritmos de clustering bajo un marco común de experimentación.
 6. Comparar diferentes números de clusters mediante métricas internas.
@@ -286,13 +286,13 @@ Ante la ausencia de un identificador de pedido, se define operativamente una **o
 
 Estas dimensiones se eligen porque describen aspectos complementarios. Una recencia baja indica actividad reciente; una frecuencia alta refleja repetición de compra; y un valor monetario alto aproxima la contribución económica acumulada. La fecha de referencia se fija al final del periodo para que todos los clientes se comparen desde el mismo instante. En frecuencia se cuentan días distintos y no líneas de transacción, pues varias prendas del mismo día deben entenderse como parte de una misma ocasión aproximada de compra.
 
-## 6.3. Representación básica de Instacart: RFA
+## 6.3. Representación básica de Instacart: DFA
 
-Al no disponer de importes, se utiliza una adaptación denominada RFA:
+Al no disponer de importes, se utiliza una adaptación denominada DFA:
 
 | Variable | Definición operacional |
 |---|---|
-| `recency` | Días desde el último pedido histórico del cliente |
+| `days_since_previous_order` | Días desde el pedido anterior al último pedido histórico |
 | `frequency` | Número de pedidos históricos |
 | `avg_basket_size` | Número medio de productos por pedido |
 
@@ -300,11 +300,11 @@ El resultado contiene tres variables de modelado y el identificador `user_id`.
 
 Después de la agregación a nivel de usuario, el conjunto modelado contiene **206.209 clientes**.
 
-En Instacart, la frecuencia puede calcularse directamente a partir de pedidos identificados. La recencia representa actividad reciente y el tamaño medio de cesta aporta una dimensión de intensidad que sustituye, sin ser equivalente, al valor monetario ausente. Se denomina RFA para dejar claro que no se está utilizando el RFM clásico y evitar interpretar el tamaño de cesta como gasto.
+En Instacart, la frecuencia puede calcularse directamente a partir de pedidos identificados. `days_since_previous_order` representa el intervalo desde el pedido anterior al último pedido histórico y el tamaño medio de cesta aporta una dimensión de intensidad que sustituye, sin ser equivalente, al valor monetario ausente. Se denomina DFA para dejar claro que no se está utilizando el RFM clásico.
 
 ## 6.4. Representaciones ampliadas
 
-El objetivo de las versiones extendidas es representar dimensiones que RFM y RFA no recogen directamente.
+El objetivo de las versiones extendidas es representar dimensiones que RFM y DFA no recogen directamente.
 
 ### 6.4.1. Variables ampliadas de H&M
 
@@ -491,18 +491,18 @@ Este comportamiento refleja la robustez de los métodos basados en centroides so
 
 La evaluación inicial muestra que la representación ampliada completa no mejora necesariamente a la representación básica. Este resultado motiva un retorno a la fase III de preparación de los datos para estudiar qué variables aportan información útil y qué combinaciones introducen redundancia o ruido.
 
-La selección se plantea como un proceso experimental de ablación. No se presupone que los tres componentes de RFM o RFA deban mantenerse obligatoriamente en la solución final.
+La selección se plantea como un proceso experimental de ablación. No se presupone que los tres componentes de RFM o DFA deban mantenerse obligatoriamente en la solución final.
 
 El notebook `code/04_iterative_data_preparation/feature_selection_study.ipynb` utiliza MiniBatch K-Means sobre una muestra reproducible de hasta **50.000 clientes**, valores de `k` entre 2 y 6 y semillas `42`, `123` y `2026`. Se evalúan:
 
-- la base RFM/RFA;
+- la base RFM/DFA;
 - el conjunto extendido completo;
 - cada variable individual;
 - las parejas de variables básicas;
 - la incorporación individual de variables adicionales a la base;
 - la retirada individual de variables básicas del conjunto extendido;
 - combinaciones de variables adicionales con cero, una o dos variables básicas;
-- una acumulación condicionada que conserva RFM/RFA;
+- una acumulación condicionada que conserva RFM/DFA;
 - una acumulación libre que parte de la variable individual mejor valorada.
 
 Las configuraciones equivalentes se deduplican por sus columnas. Las soluciones de una o dos variables se conservan como diagnóstico, pero no pueden ser recomendaciones finales, ya que las métricas internas pueden favorecer artificialmente espacios de muy baja dimensión y producir perfiles poco ricos. Se exige un mínimo de tres variables para la recomendación.
@@ -520,7 +520,7 @@ El análisis individual y emparejado revela que una variable puede resultar info
 Entre los resultados más destacados se encuentran:
 
 - `std_days_between_purchases` mejora en **5,81 puntos** la base RFM de H&M;
-- `unique_products` mejora en **2,48 puntos** la base RFA de Instacart;
+- `unique_products` mejora en **2,48 puntos** la base DFA de Instacart;
 - `unique_garment_groups` alcanza una puntuación individual media de **91,72**, pero al añadirse a RFM reduce su puntuación en **5,59 puntos** y aparece en el 100 % del tramo inferior de las configuraciones que la contienen;
 - algunas variables obtienen puntuaciones individuales elevadas, pero presentan efectos negativos al añadirse a la representación básica;
 - las diferencias medias por presencia son descriptivas y pueden estar condicionadas por la dimensionalidad y la ruta de selección.
@@ -532,7 +532,7 @@ La primera fase recomienda:
 | Dataset | Subconjunto | Número de variables | Puntuación inicial |
 |---|---|---:|---:|
 | H&M | `channel_2_ratio`, `std_days_between_purchases`, `avg_days_between_purchases` | 3 | 66,56 |
-| Instacart | `recency`, `frequency`, `avg_days_between_orders` | 3 | 69,15 |
+| Instacart | `days_since_previous_order`, `frequency`, `avg_days_between_orders` | 3 | 69,15 |
 
 Estos resultados se obtienen con MiniBatch K-Means y funcionan como preselección, no como decisión definitiva. Representan el resultado del retorno desde la evaluación inicial a la preparación iterativa: todavía es necesario volver a ejecutar el modelado con varios algoritmos antes de seleccionar la configuración final.
 
@@ -564,7 +564,7 @@ El uso de las mismas semillas en todas las configuraciones garantiza una compara
 | Dataset | Variables seleccionadas | Modelo | `k` | Silhouette | Calinski–Harabasz | Davies–Bouldin | ARI | Puntuación |
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | H&M | `channel_2_ratio`, `std_days_between_purchases`, `avg_days_between_purchases` | Fuzzy C-Means | 5 | 0,652 | 55.333,59 | 0,567 | 1,000 | 97,21 |
-| Instacart | `recency`, `frequency`, `avg_days_between_orders`, `std_days_between_orders` | Fuzzy C-Means | 2 | 0,406 | 29.412,56 | 0,954 | 1,000 | 97,00 |
+| Instacart | `days_since_previous_order`, `frequency`, `avg_days_between_orders`, `std_days_between_orders` | Fuzzy C-Means | 2 | 0,406 | 29.412,56 | 0,954 | 1,000 | 97,00 |
 
 Fuzzy C-Means obtiene la mejor configuración individual en ambos datasets. El ARI igual a uno indica que estas soluciones son estables frente a las semillas probadas. Aun así, no debe confundirse estabilidad aleatoria con estabilidad temporal o muestral.
 
@@ -627,7 +627,7 @@ La solución final contiene dos clusters:
 
 El segundo cluster también presenta, de forma descriptiva, mayor variedad de productos, mayor proporción de recompra y una cesta media ligeramente superior. Estas variables no construyen la solución final, pero ayudan a comprender las diferencias comerciales entre los grupos.
 
-En Instacart se conservan `recency` y `frequency`, mientras que `avg_basket_size` se sustituye por el promedio y la desviación de los días entre pedidos. La regularidad aporta así más información para la estructura seleccionada que el tamaño medio de cesta.
+En Instacart se conservan `days_since_previous_order` y `frequency`, mientras que `avg_basket_size` se sustituye por el promedio y la desviación de los días entre pedidos. La regularidad aporta así más información para la estructura seleccionada que el tamaño medio de cesta.
 
 > **Figura 15. Tamaño y perfil normalizado de los dos clusters de Instacart.**  
 > *[Insertar aquí los gráficos de tamaños y mapa de calor generados en `code/06_evaluation/best_clustering_interpretation.ipynb`.]*  
@@ -695,16 +695,16 @@ El resultado más consistente del estudio es que una representación más extens
 
 Por tanto, el problema no es la ingeniería de características en sí, sino la inclusión conjunta de variables redundantes o poco compatibles con la estructura buscada. La selección de subconjuntos actúa como una etapa necesaria entre la creación de variables y el modelado final.
 
-## 10.2. Valor de RFM y RFA
+## 10.2. Valor de RFM y DFA
 
-RFM y RFA proporcionan bases compactas, conocidas e interpretables. Su buen rendimiento medio confirma su utilidad como punto de partida. No obstante, la ablación demuestra que sus componentes no deben imponerse de forma dogmática:
+RFM y DFA proporcionan bases compactas, conocidas e interpretables. Su buen rendimiento medio confirma su utilidad como punto de partida. No obstante, la ablación demuestra que sus componentes no deben imponerse de forma dogmática:
 
 - H&M obtiene su mejor resultado sin ninguna variable RFM;
 - Instacart mantiene recencia y frecuencia, pero descarta el tamaño medio de cesta;
 - la regularidad temporal aparece en los dos subconjuntos finales;
 - el canal resulta determinante en H&M.
 
-La principal aportación metodológica consiste, por tanto, en conservar RFM/RFA como referencia teórica y permitir simultáneamente que la evidencia experimental proponga combinaciones alternativas.
+La principal aportación metodológica consiste, por tanto, en conservar RFM/DFA como referencia teórica y permitir simultáneamente que la evidencia experimental proponga combinaciones alternativas.
 
 ## 10.3. Algoritmos rígidos y pertenencia gradual
 

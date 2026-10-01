@@ -2,7 +2,7 @@
 
 Repositorio del Trabajo de Fin de Máster sobre segmentación no supervisada de clientes a partir de datos transaccionales de H&M e Instacart.
 
-El proyecto compara distintas representaciones de clientes —RFM/RFA y variables ampliadas—, siete algoritmos de clustering y diferentes valores de `k`. La evaluación utiliza métricas internas, selección de variables y análisis de estabilidad para obtener segmentos interpretables.
+El proyecto compara distintas representaciones de clientes —RFM/DFA y variables ampliadas—, siete algoritmos de clustering y diferentes valores de `k`. La evaluación utiliza métricas internas, selección de variables y análisis de estabilidad para obtener segmentos interpretables.
 
 ## Contenido del repositorio
 
@@ -48,7 +48,7 @@ Los cuatro últimos archivos se generan con `code/06_evaluation/01_simple_vs_ext
 
 Contiene el estudio iterativo de selección y ablación de variables, generado por `code/04_iterative_data_preparation/feature_selection_study.ipynb` con MiniBatch K-Means. Se ejecuta después del modelado inicial y utiliza una muestra reproducible de hasta 50.000 clientes, `k=2..6` y las semillas `42`, `123` y `2026`.
 
-- `feature_selection_results.csv`: resultados de todos los subconjuntos candidatos, incluyendo bases RFM/RFA, variables individuales, combinaciones, adiciones y retiradas de variables.
+- `feature_selection_results.csv`: resultados de todos los subconjuntos candidatos, incluyendo bases RFM/DFA, variables individuales, combinaciones, adiciones y retiradas de variables.
 - `recommended_features.csv`: mejores subconjuntos preliminares por dataset, restringidos a un mínimo de tres variables para que los perfiles sean interpretables.
 
 #### `results/multimodel/`
@@ -111,7 +111,7 @@ El flujo actual está organizado como una secuencia de notebooks: deben ejecutar
 1. Ejecutar los notebooks de `code/01_data_understanding/`.
 2. Generar las representaciones simples y ampliadas desde `code/02_data_preparation/`.
 3. Preparar las variables para el clustering:
-   - Ejecutar los notebooks `01_rfm_hym.ipynb` y `01_rfa_instacart.ipynb` para generar las representaciones base de cada dataset.
+   - Ejecutar los notebooks `01_rfm_hym.ipynb` y `01_dfa_instacart.ipynb` para generar las representaciones base de cada dataset.
    - Ejecutar `02_extended_hym.ipynb` y `02_extended_instacart.ipynb` para construir las variables ampliadas.
    - Ejecutar `03_variable_distributions.ipynb` como análisis previo de las distribuciones.
    - Ejecutar `04_scaling.ipynb`. Este notebook ya contiene las reglas de transformación (`log1p`, raíz cuadrada o Yeo–Johnson) y las aplica automáticamente; después estandariza las variables con `StandardScaler`.

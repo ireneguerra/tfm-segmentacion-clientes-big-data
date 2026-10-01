@@ -31,11 +31,11 @@ CONFIGS = [
     dict(id="hym_kmeans_k6", dataset="hym", model="kmeans", k=6,
          features=["channel_2_ratio", "std_days_between_purchases", "avg_days_between_purchases"]),
     dict(id="instacart_fuzzy_k2_std", dataset="instacart", model="fuzzy", k=2,
-         features=["recency", "frequency", "avg_days_between_orders", "std_days_between_orders"]),
+         features=["days_since_previous_order", "frequency", "avg_days_between_orders", "std_days_between_orders"]),
     dict(id="instacart_fuzzy_k2_simple", dataset="instacart", model="fuzzy", k=2,
-         features=["recency", "frequency", "avg_days_between_orders"]),
+         features=["days_since_previous_order", "frequency", "avg_days_between_orders"]),
     dict(id="instacart_kmeans_k2_std", dataset="instacart", model="kmeans", k=2,
-         features=["recency", "frequency", "avg_days_between_orders", "std_days_between_orders"]),
+         features=["days_since_previous_order", "frequency", "avg_days_between_orders", "std_days_between_orders"]),
 ]
 
 SCALED = {"hym": ROOT / "scaled_data" / "hym_scaled.csv",
