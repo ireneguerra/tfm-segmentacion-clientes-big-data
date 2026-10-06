@@ -77,6 +77,12 @@ Contiene la comparación específica de las seis alternativas finales, generada 
 - `group_sizes_*.png` y `concordance_*.png`: figuras comparativas separadas por dataset.
 
 Los archivos anteriores siguen siendo útiles para documentar el estudio completo, sus semillas y el contexto de todos los candidatos. Los nuevos archivos se utilizan para la comparación final de alternativas.
+#### `results/final_ari10/`
+
+Contiene la actualizaciÃ³n del criterio final: 30 % silhouette, 30 % Calinski-Harabasz, 30 % Davies-Bouldin y 10 % estabilidad ARI. `ranking_ari10_complete.csv` conserva las 175 configuraciones de cada dataset; `ranking_ari10_top10.csv` contiene los diez primeros puestos y `mean_scores_by_subset_algorithm_ari10.csv` las medias por subconjunto y algoritmo. Los perfiles y asignaciones se ajustan con todos los clientes y semilla 42. Las figuras `projections_*_ari10.png` y `group_sizes_*_ari10.png` se generan desde el mismo script. La comparaciÃ³n H&M usa `partition_comparison_ari.csv` y `partition_contingency_tables.csv` frente a la soluciÃ³n Fuzzy C-Means de cinco grupos anterior.
+
+EjecuciÃ³n desde la raÃ­z: `conda run -n tfg python code/06_evaluation/final_alternatives_analysis.py`. La auditorÃ­a de coincidencia con la sensibilidad previa estÃ¡ en `results/final_ari10/reproducibility_audit.md`.
+
 #### `results/profiles/`
 
 Contiene los perfiles finales de los segmentos, generados por `code/06_evaluation/02_best_clustering_interpretation.ipynb` después de seleccionar la configuración ganadora:
