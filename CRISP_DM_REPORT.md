@@ -561,6 +561,10 @@ El uso de las mismas semillas en todas las configuraciones garantiza una compara
 
 ## 8.6. Configuraciones finales
 
+### Distinción entre ranking y referencia descriptiva
+
+El ranking final conserva las 175 configuraciones de validación de cada dataset y calcula, mediante percentiles separados por dataset, 30 % de silhouette, 30 % de Calinski-Harabasz, 30 % de Davies-Bouldin (invertido, porque se prefieren valores menores) y 10 % de estabilidad ARI. El ganador ponderado se obtiene del ranking y no se sustituye por una decisión posterior de interpretación. Para los perfiles completos se utilizan como referencias H&M K-Means k=6 e Instacart K-Means k=2 con el subconjunto I2 (`days_since_previous_order`, `frequency`, `avg_days_between_orders`, `std_days_between_orders`). En Instacart, Fuzzy C-Means k=2 con I2 sigue encabezando el ranking ponderado y se conserva como alternativa. El intervalo `days_since_previous_order` es el intervalo entre los dos últimos pedidos registrados, no recencia respecto a una fecha común.
+
 | Dataset | Variables seleccionadas | Modelo | `k` | Silhouette | Calinski–Harabasz | Davies–Bouldin | ARI | Puntuación |
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | H&M | `channel_2_ratio`, `std_days_between_purchases`, `avg_days_between_purchases` | Fuzzy C-Means | 5 | 0,652 | 55.333,59 | 0,567 | 1,000 | 97,21 |
@@ -617,6 +621,8 @@ Resulta notable que ninguna variable RFM forme parte del subconjunto ganador. RF
 > **Interpretación:** el gráfico de tamaños muestra que la solución no está dominada por un único grupo, aunque el cluster 4 representa solo el 8,76 %. El mapa de calor debe leerse por filas y variables: permite identificar diferencias relativas, pero sus valores estandarizados no sustituyen las medias originales de la tabla.
 
 ## 8.10. Perfil final de Instacart
+
+Los perfiles principales de esta actualización proceden de K-Means k=2 con I2. La solución Fuzzy C-Means k=2 con I2 se conserva para comparar particiones y como ganador del ranking ponderado, pero no se presenta como fuente de los perfiles principales. En Fuzzy C-Means, los perfiles alternativos se calculan mediante la pertenencia máxima (`argmax`).
 
 La solución final contiene dos clusters:
 
@@ -816,6 +822,8 @@ La caracterización mediante variables no usadas por el modelo permite enriquece
 Esta separación es esencial para evitar conclusiones causales que el diseño no permite sostener.
 
 ## Actualización: comparación de alternativas finales
+
+La carpeta `results/final_ari10/` contiene el ranking completo, `ranking_winners_ari10.csv`, `final_configuration_roles.csv`, las asignaciones y perfiles de las cuatro configuraciones completas, y las comparaciones de particiones. Los ajustes completos usan semilla 42; las métricas de validación siguen siendo resultados de muestra. El ARI entre configuraciones se calcula tras emparejar identificadores de cliente y no debe interpretarse como estabilidad entre semillas.
 
 La puntuación conjunta se conserva como referencia, pero no se interpreta como prueba de una superioridad clara. Diferencias mínimas de ARI pueden modificar el percentil de estabilidad y, por tanto, la posición relativa. Para estudiar esta limitación se añadió `code/06_evaluation/final_alternatives_analysis.py`, que compara seis configuraciones previamente verificadas: tres en H&M y tres en Instacart.
 
