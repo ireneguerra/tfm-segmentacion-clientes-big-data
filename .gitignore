@@ -5,6 +5,8 @@
 *.md
 !/README.md
 AUDIT_SUMMARY.md
+results.zip
+audit_backups/
 CRISP_DM_REPORT.md
 **/CRISP_DM_REPORT.md
 PROJECT_DOCUMENTATION.md

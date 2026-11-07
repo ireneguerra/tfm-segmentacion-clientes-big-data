@@ -83,7 +83,7 @@ Actualización de roles: `ranking_ari10_complete.csv` mantiene las 175 configura
 
 Contiene la actualización del criterio final: 30 % silhouette, 30 % Calinski-Harabasz, 30 % Davies-Bouldin y 10 % estabilidad ARI. `ranking_ari10_complete.csv` conserva las 175 configuraciones de cada dataset; `ranking_ari10_top10.csv` contiene los diez primeros puestos y `mean_scores_by_subset_algorithm_ari10.csv` las medias por subconjunto y algoritmo. Los perfiles y asignaciones se ajustan con todos los clientes y semilla 42. Las figuras `projections_*_ari10.png` y `group_sizes_*_ari10.png` se generan desde el mismo script. La comparación H&M usa `partition_comparison_ari.csv` y `partition_contingency_tables.csv` frente a la solución Fuzzy C-Means de cinco grupos anterior.
 
-Ejecución desde la raíz: `conda run -n tfm-clustering python code/06_evaluation/final_alternatives_analysis.py`. La auditoría distingue la comparación histórica disponible de las comprobaciones no realizadas en `results/final_ari10/reproducibility_audit.md`.
+Ejecución desde la raíz: `conda run -n tfm-clustering python code/06_evaluation/final_alternatives_analysis.py`. La ejecución completa vuelve a ajustar las cuatro configuraciones finales y puede sobrescribir sus propias salidas en `results/final_ari10/`; no debe confundirse con una simple recalculación de sensibilidad. La sensibilidad a partir de métricas ya guardadas no requiere reentrenamiento, pero el repositorio no ofrece un comando independiente para ejecutarla. La auditoría distingue la comparación histórica disponible de las comprobaciones no realizadas en `results/final_ari10/reproducibility_audit.md`.
 
 #### `results/profiles/`
 
@@ -130,7 +130,7 @@ El flujo actual está organizado como una secuencia de notebooks: deben ejecutar
 7. **Evaluation:** ejecutar los notebooks de `code/06_evaluation/`:
    - `simple_vs_extended_clustering_comparison.ipynb`, que compara las métricas del modelado general y puede ejecutarse después de `03_modeling`.
    - `best_clustering_interpretation.ipynb`, que interpreta las configuraciones finales después de la validación multimodelo.
-   - `final_alternatives_analysis.py`, que compara las alternativas finales, recalcula la sensibilidad del ranking y genera perfiles y concordancias sin sobrescribir resultados anteriores.
+   - `final_alternatives_analysis.py`, que compara las alternativas finales, recalcula la sensibilidad del ranking y genera perfiles y concordancias; al ejecutarse de nuevo puede sobrescribir sus propias salidas de `results/final_ari10/`.
 
 La secuencia debe interpretarse según el ciclo iterativo de CRISP-DM:
 
@@ -146,7 +146,7 @@ La secuencia debe interpretarse según el ciclo iterativo de CRISP-DM:
 
 La comparación general puede ejecutarse después del primer modelado. Si se realiza selección de variables, el flujo vuelve iterativamente a preparación, pasa por `05_modeling_validation/` para reentrenar los algoritmos y termina en `06_evaluation/`. Por tanto, la estructura distingue explícitamente la preparación, el modelado, la validación y la evaluación.
 
-Los notebooks deben ejecutarse conservando la estructura de carpetas del proyecto. La documentación técnica ampliada (`PROJECT_DOCUMENTATION.md`) se mantiene como archivo local y está excluida del repositorio.
+Los notebooks deben ejecutarse conservando la estructura de carpetas del proyecto y usando como directorio de trabajo la carpeta que contiene cada notebook cuando empleen rutas relativas. La documentación técnica ampliada (`PROJECT_DOCUMENTATION.md`) se mantiene como archivo local y está excluida del repositorio.
 
 ## Fuentes y uso de los datos
 

@@ -108,6 +108,38 @@ def validate_required_inputs():
     if missing:
         raise FileNotFoundError(f"Faltan entradas necesarias: {missing}")
 
+def validate_summary_detail(summary, detail):
+    """Require exactly three valid seed rows for every current summary key."""
+    key = ["dataset", "subset", "columns", "model", "k"]
+    detail_metrics = ["silhouette", "calinski_harabasz", "davies_bouldin"]
+    required_detail = set(key + ["seed", "error", *detail_metrics])
+    missing = sorted(required_detail - set(detail.columns))
+    if missing:
+        raise RuntimeError(f"Faltan columnas en el detalle multimodelo: {missing}")
+    if summary.duplicated(key).any():
+        raise RuntimeError("Hay claves duplicadas en el resumen multimodelo")
+    failures = []
+    expected_seeds = {42, 123, 2026}
+    for record in summary[key].to_dict("records"):
+        mask = np.logical_and.reduce([detail[column].eq(value) for column, value in record.items()])
+        rows = detail.loc[mask].copy()
+        counts = rows.groupby("seed").size().to_dict()
+        if set(counts) != expected_seeds or any(counts.get(seed, 0) != 1 for seed in expected_seeds):
+            failures.append(f"{record} semillas={counts}")
+            continue
+        if rows["error"].fillna("").ne("").any():
+            bad_seeds = rows.loc[rows["error"].fillna("").ne(""), "seed"].tolist()
+            failures.append(f"{record} semillas con error={bad_seeds}")
+            continue
+        if not np.isfinite(rows[detail_metrics].to_numpy()).all():
+            finite = np.isfinite(rows[detail_metrics].to_numpy()).all(axis=1)
+            bad_seeds = rows.loc[~finite, "seed"].tolist()
+            failures.append(f"{record} semillas con métricas no finitas={bad_seeds}")
+    if failures:
+        preview = "; ".join(failures[:10])
+        suffix = "" if len(failures) <= 10 else f"; ... ({len(failures)} fallos)"
+        raise RuntimeError("Detalle multimodelo no certificado: " + preview + suffix)
+
 def validation_outputs():
     summary = pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv")
     detail = pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation_detail.csv")
@@ -125,8 +157,7 @@ def validation_outputs():
     metric_cols = ["silhouette", "calinski_harabasz", "davies_bouldin", "stability_ari"]
     if not np.isfinite(summary[metric_cols].to_numpy()).all():
         raise RuntimeError("Hay métricas no finitas en el resumen multimodelo")
-    if set(detail["seed"].astype(int).unique()) != {42, 123, 2026}:
-        raise RuntimeError("El detalle no contiene exactamente las semillas 42, 123 y 2026")
+    validate_summary_detail(summary, detail)
     ranking = rank_ari10(summary)
     ranking.to_csv(OUT / "ranking_ari10_complete.csv", index=False)
     ranking.groupby("dataset", sort=False).head(10).to_csv(OUT / "ranking_ari10_top10.csv", index=False)
