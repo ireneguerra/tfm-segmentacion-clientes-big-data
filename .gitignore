@@ -4,6 +4,7 @@
 # Documentación local no destinada al repositorio
 *.md
 !/README.md
+AUDIT_SUMMARY.md
 CRISP_DM_REPORT.md
 **/CRISP_DM_REPORT.md
 PROJECT_DOCUMENTATION.md

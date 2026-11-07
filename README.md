@@ -42,7 +42,7 @@ Contiene la evaluación general de las 252 configuraciones de clustering (`7 alg
 - `clustering_algorithm_comparison.csv`: rendimiento agregado por algoritmo.
 - `clustering_version_comparison.csv`: comparación agregada entre las representaciones simple y ampliada.
 
-Los cuatro últimos archivos se generan con `code/06_evaluation/01_simple_vs_extended_clustering_comparison.ipynb` a partir de `clustering_metrics.csv`. El ranking combina las tres métricas internas y normaliza sus posiciones dentro de cada dataset.
+Los cuatro últimos archivos se generan con `code/06_evaluation/simple_vs_extended_clustering_comparison.ipynb` a partir de `clustering_metrics.csv`. El ranking combina las tres métricas internas y normaliza sus posiciones dentro de cada dataset.
 
 #### `results/feature_selection/`
 
@@ -67,7 +67,7 @@ Estos archivos constituyen la validación multimodelo completa y se conservan co
 
 #### `results/final_alternatives/`
 
-Contiene la comparación específica de las seis alternativas finales, generada por `code/06_evaluation/final_alternatives_analysis.py`. Esta carpeta complementa, sin sustituir, `results/multimodel/` y `results/profiles/`:
+Contiene resultados históricos de la comparación de alternativas, generados por versiones anteriores de `code/06_evaluation/final_alternatives_analysis.py`. La versión actual define cuatro configuraciones y genera `results/final_ari10/`; esta carpeta histórica complementa, sin sustituir, `results/multimodel/` y `results/profiles/`:
 
 - `validation_metrics_requested.csv` y `validation_detail_requested.csv`: copia filtrada y trazable de los resultados multimodelo existentes.
 - `ranking_sensitivity_ari_weights.csv`, `ranking_sensitivity_top10.csv` y `ranking_sensitivity_requested.csv`: sensibilidad del ranking al asignar al ARI un peso del 0 %, 10 % o 25 %.
@@ -81,13 +81,13 @@ Los archivos anteriores siguen siendo útiles para documentar el estudio complet
 
 Actualización de roles: `ranking_ari10_complete.csv` mantiene las 175 configuraciones por dataset y el criterio 30/30/30/10. `ranking_winners_ari10.csv` identifica el ganador calculado del ranking, mientras que `final_configuration_roles.csv` separa ganador ponderado, referencia descriptiva y alternativas. Los perfiles principales actuales proceden de H&M K-Means k=6 y de Instacart K-Means k=2 con I2. Instacart Fuzzy C-Means k=2 con I2 sigue siendo el ganador ponderado y se conserva como alternativa. `partition_comparison_ari.csv` y `partition_contingency_tables.csv` comparan particiones completas emparejadas por identificador, no estabilidad entre semillas. En Instacart, `days_since_previous_order` es el intervalo entre los dos últimos pedidos registrados, no recencia respecto a una fecha común.
 
-Contiene la actualizaciÃ³n del criterio final: 30 % silhouette, 30 % Calinski-Harabasz, 30 % Davies-Bouldin y 10 % estabilidad ARI. `ranking_ari10_complete.csv` conserva las 175 configuraciones de cada dataset; `ranking_ari10_top10.csv` contiene los diez primeros puestos y `mean_scores_by_subset_algorithm_ari10.csv` las medias por subconjunto y algoritmo. Los perfiles y asignaciones se ajustan con todos los clientes y semilla 42. Las figuras `projections_*_ari10.png` y `group_sizes_*_ari10.png` se generan desde el mismo script. La comparaciÃ³n H&M usa `partition_comparison_ari.csv` y `partition_contingency_tables.csv` frente a la soluciÃ³n Fuzzy C-Means de cinco grupos anterior.
+Contiene la actualización del criterio final: 30 % silhouette, 30 % Calinski-Harabasz, 30 % Davies-Bouldin y 10 % estabilidad ARI. `ranking_ari10_complete.csv` conserva las 175 configuraciones de cada dataset; `ranking_ari10_top10.csv` contiene los diez primeros puestos y `mean_scores_by_subset_algorithm_ari10.csv` las medias por subconjunto y algoritmo. Los perfiles y asignaciones se ajustan con todos los clientes y semilla 42. Las figuras `projections_*_ari10.png` y `group_sizes_*_ari10.png` se generan desde el mismo script. La comparación H&M usa `partition_comparison_ari.csv` y `partition_contingency_tables.csv` frente a la solución Fuzzy C-Means de cinco grupos anterior.
 
-EjecuciÃ³n desde la raÃ­z: `conda run -n tfg python code/06_evaluation/final_alternatives_analysis.py`. La auditorÃ­a de coincidencia con la sensibilidad previa estÃ¡ en `results/final_ari10/reproducibility_audit.md`.
+Ejecución desde la raíz: `conda run -n tfm-clustering python code/06_evaluation/final_alternatives_analysis.py`. La auditoría distingue la comparación histórica disponible de las comprobaciones no realizadas en `results/final_ari10/reproducibility_audit.md`.
 
 #### `results/profiles/`
 
-Contiene los perfiles finales de los segmentos, generados por `code/06_evaluation/02_best_clustering_interpretation.ipynb` después de seleccionar la configuración ganadora:
+Contiene la evaluación histórica de perfiles, generada por `code/06_evaluation/best_clustering_interpretation.ipynb` después de seleccionar la configuración correspondiente:
 
 - `hym_best_clustering_cluster_profiles.csv`: tamaño, porcentaje y medias de las variables de los clusters de H&M.
 - `instacart_best_clustering_cluster_profiles.csv`: equivalente para Instacart.
@@ -128,8 +128,8 @@ El flujo actual está organizado como una secuencia de notebooks: deben ejecutar
 5. **Data Preparation iterativa — selección de variables:** ejecutar `code/04_iterative_data_preparation/feature_selection_study.ipynb`. Este notebook prueba distintos subconjuntos de variables con MiniBatch K-Means y genera los resultados de `results/feature_selection/`.
 6. **Modeling y validación multimodelo:** ejecutar `code/05_modeling_validation/multimodel_subset_validation.ipynb`. Este notebook vuelve a entrenar los siete algoritmos con los subconjuntos seleccionados y compara su estabilidad y rendimiento.
 7. **Evaluation:** ejecutar los notebooks de `code/06_evaluation/`:
-   - `01_simple_vs_extended_clustering_comparison.ipynb`, que compara las métricas del modelado general y puede ejecutarse después de `03_modeling`.
-   - `02_best_clustering_interpretation.ipynb`, que interpreta las configuraciones finales después de la validación multimodelo.
+   - `simple_vs_extended_clustering_comparison.ipynb`, que compara las métricas del modelado general y puede ejecutarse después de `03_modeling`.
+   - `best_clustering_interpretation.ipynb`, que interpreta las configuraciones finales después de la validación multimodelo.
    - `final_alternatives_analysis.py`, que compara las alternativas finales, recalcula la sensibilidad del ranking y genera perfiles y concordancias sin sobrescribir resultados anteriores.
 
 La secuencia debe interpretarse según el ciclo iterativo de CRISP-DM:
@@ -137,11 +137,11 @@ La secuencia debe interpretarse según el ciclo iterativo de CRISP-DM:
 ```text
 02_data_preparation
     └── 03_modeling
-            ├── 06_evaluation/01_simple_vs_extended_clustering_comparison.ipynb
+            ├── 06_evaluation/simple_vs_extended_clustering_comparison.ipynb
             │       └── comparación general del primer modelado
             └── 04_iterative_data_preparation/feature_selection_study.ipynb
                     └── 05_modeling_validation/multimodel_subset_validation.ipynb
-                            └── 06_evaluation/02_best_clustering_interpretation.ipynb
+                            └── 06_evaluation/best_clustering_interpretation.ipynb
 ```
 
 La comparación general puede ejecutarse después del primer modelado. Si se realiza selección de variables, el flujo vuelve iterativamente a preparación, pasa por `05_modeling_validation/` para reentrenar los algoritmos y termina en `06_evaluation/`. Por tanto, la estructura distingue explícitamente la preparación, el modelado, la validación y la evaluación.

@@ -1,7 +1,7 @@
 # Auditoría previa del procedimiento
 
 - `multi_model_feature_validation.csv`: 350 filas, 175 por conjunto de datos (cinco subsets × siete algoritmos × cinco valores de k).
-- `multi_model_feature_validation_detail.csv`: 2.310 filas y 2.310 claves únicas (`dataset`, `subset`, `model`, `k`, `seed`); contiene 1.155 filas por conjunto. El script no lo sobrescribe.
+- `multi_model_feature_validation_detail.csv`: la copia local contiene 2.310 filas y 2.310 claves únicas (`dataset`, `subset`, `model`, `k`, `seed`); contiene 1.155 filas por conjunto y 770 configuraciones. Por tanto incluye registros históricos además del universo actual. El universo actual debe filtrarse explícitamente a cinco subsets × siete algoritmos × cinco valores de k = 350 configuraciones; con tres semillas son 1.050 ejecuciones. El script no debe contar filas históricas como validación actual.
 - El notebook agrupa el detalle por configuración y promedia las tres semillas. La estabilidad es la media de los tres ARI por pares entre semillas.
 - Las etiquetas de Fuzzy C-Means se obtienen mediante `np.argmax(u, axis=0)`.
 - El ranking original calcula percentiles por dataset con `rank(pct=True)`; silhouette y Calinski se maximizan, Davies-Bouldin se minimiza y estabilidad se maximiza. Los empates reciben el rango medio. La ordenación posterior usa score, estabilidad y silhouette, aunque no fija explícitamente un método adicional de desempate para filas completamente idénticas.

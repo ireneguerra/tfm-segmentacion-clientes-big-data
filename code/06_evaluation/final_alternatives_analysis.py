@@ -21,6 +21,10 @@ import modeling_functions as mf
 
 OUT = ROOT / "results" / "final_ari10"
 OUT.mkdir(parents=True, exist_ok=True)
+for _output_dir in (ROOT / "simple_datasets", ROOT / "extended_datasets",
+                    ROOT / "scaled_data", ROOT / "results" / "multimodel",
+                    ROOT / "results" / "profiles"):
+    _output_dir.mkdir(parents=True, exist_ok=True)
 SEED = 42
 ARI_WEIGHT = 0.10
 PCA_SAMPLE = 10_000
@@ -62,8 +66,8 @@ def config_manifest(ranking):
     winners.to_csv(OUT / "ranking_winners_ari10.csv", index=False)
     return manifest
 
-def rank_ari10(summary):
-    """Original percentile procedure with only the weights changed."""
+def rank_with_ari_weight(summary, ari_weight):
+    """Apply the unchanged percentile universe with a selected ARI weight."""
     parts = []
     for dataset, group in summary.groupby("dataset", sort=False):
         group = group.copy()
@@ -74,15 +78,35 @@ def rank_ari10(summary):
         missing = [column for column in required if column not in group]
         if missing:
             raise RuntimeError(f"Faltan percentiles originales: {missing}")
-        group["ari_weight"] = ARI_WEIGHT
-        group["weight_silhouette"] = group["weight_calinski"] = group["weight_davies"] = 0.30
-        group["weight_stability"] = ARI_WEIGHT
-        group["score_weighted"] = 100 * (0.30 * group["pct_silhouette"] + 0.30 * group["pct_calinski"] + 0.30 * group["pct_davies"] + ARI_WEIGHT * group["pct_stability"])
+        metric_weight = (1 - ari_weight) / 3
+        group["ari_weight"] = ari_weight
+        group["weight_silhouette"] = group["weight_calinski"] = group["weight_davies"] = metric_weight
+        group["weight_stability"] = ari_weight
+        group["score_weighted"] = 100 * (metric_weight * group["pct_silhouette"] + metric_weight * group["pct_calinski"] + metric_weight * group["pct_davies"] + ari_weight * group["pct_stability"])
         group["position_weighted"] = group["score_weighted"].rank(method="min", ascending=False).astype(int)
         parts.append(group)
     return pd.concat(parts, ignore_index=True).sort_values(
         ["dataset", "position_weighted", "stability_ari", "silhouette"],
         ascending=[True, True, False, False], kind="mergesort").reset_index(drop=True)
+
+def rank_ari10(summary):
+    return rank_with_ari_weight(summary, ARI_WEIGHT)
+
+def recalculate_sensitivity(summary):
+    """Recalculate 0/10/25% from original percentiles without refitting models."""
+    sensitivity = pd.concat(
+        [rank_with_ari_weight(summary, weight) for weight in (0.0, 0.10, 0.25)],
+        ignore_index=True,
+    )
+    sensitivity.to_csv(OUT / "ranking_sensitivity_ari_weights_recalculated.csv", index=False)
+    return sensitivity
+
+def validate_required_inputs():
+    required = [ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv",
+                ROOT / "results" / "multimodel" / "multi_model_feature_validation_detail.csv"]
+    missing = [str(path.relative_to(ROOT)) for path in required if not path.exists()]
+    if missing:
+        raise FileNotFoundError(f"Faltan entradas necesarias: {missing}")
 
 def validation_outputs():
     summary = pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv")
@@ -90,6 +114,19 @@ def validation_outputs():
     counts = summary.groupby("dataset").size().to_dict()
     if counts != {"hym": 175, "instacart": 175}:
         raise RuntimeError(f"Se esperaban 175 configuraciones por dataset: {counts}")
+    required = {"dataset", "subset", "columns", "model", "k", "pct_silhouette",
+                "pct_calinski", "pct_davies", "pct_stability", "stability_ari",
+                "silhouette", "calinski_harabasz", "davies_bouldin"}
+    missing = sorted(required - set(summary.columns))
+    if missing:
+        raise RuntimeError(f"Faltan columnas de validación: {missing}")
+    if summary.duplicated(["dataset", "subset", "model", "k"]).any():
+        raise RuntimeError("Hay configuraciones duplicadas en el resumen multimodelo")
+    metric_cols = ["silhouette", "calinski_harabasz", "davies_bouldin", "stability_ari"]
+    if not np.isfinite(summary[metric_cols].to_numpy()).all():
+        raise RuntimeError("Hay métricas no finitas en el resumen multimodelo")
+    if set(detail["seed"].astype(int).unique()) != {42, 123, 2026}:
+        raise RuntimeError("El detalle no contiene exactamente las semillas 42, 123 y 2026")
     ranking = rank_ari10(summary)
     ranking.to_csv(OUT / "ranking_ari10_complete.csv", index=False)
     ranking.groupby("dataset", sort=False).head(10).to_csv(OUT / "ranking_ari10_top10.csv", index=False)
@@ -103,8 +140,27 @@ def validation_outputs():
     return ranking
 
 def reproducibility_audit(ranking):
-    """Record the checks connecting the new files to the old published CSVs."""
-    old = pd.read_csv(ROOT / "results" / "final_alternatives" / "ranking_sensitivity_ari_weights.csv")
+    """Record actual, failed and unperformed checks separately."""
+    historical_path = ROOT / "results" / "final_alternatives" / "ranking_sensitivity_ari_weights.csv"
+    if not historical_path.exists():
+        lines = ["# Reproducibility audit", "", "## Comprobaciones actuales", "",
+                 "- Entradas necesarias: correctas; universo filtrado: 175 configuraciones por dataset.",
+                 "- Sensibilidad recalculada para ARI=0%, 10% y 25% desde los percentiles originales; no requiere reentrenamiento.",
+                 "- El peso restante se reparte por igual entre silhouette, Calinski-Harabasz y Davies-Bouldin.",
+                 "", "## Comparación histórica", "",
+                 "- comparación histórica no realizada: archivo no disponible"]
+        (OUT / "reproducibility_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return
+    old = pd.read_csv(historical_path)
+    comparison_columns = ["dataset", "subset", "columns", "model", "k",
+                          "score_weighted", "position_weighted", "stability_ari",
+                          "silhouette", "ari_weight"]
+    missing = sorted(set(comparison_columns) - set(old.columns))
+    if missing:
+        lines = ["# Reproducibility audit", "", "## Comparación histórica", "",
+                 f"- comparación histórica fallida: faltan columnas {missing}"]
+        (OUT / "reproducibility_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return
     old10 = old.loc[old["ari_weight"].eq(0.10)].sort_values(
         ["dataset", "position_weighted", "stability_ari", "silhouette"],
         ascending=[True, True, False, False]
@@ -119,6 +175,11 @@ def reproducibility_audit(ranking):
     compare_cols = ["dataset", "subset", "columns", "model", "k"]
     old_keys = set(map(tuple, old_all[compare_cols].to_numpy()))
     new_keys = set(map(tuple, new_all[compare_cols].to_numpy()))
+    if old_all.duplicated(compare_cols).any() or new_all.duplicated(compare_cols).any():
+        lines = ["# Reproducibility audit", "", "## Comparación histórica", "",
+                 "- comparación histórica fallida: claves duplicadas en una de las tablas"]
+        (OUT / "reproducibility_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return
     joined = old_all.merge(new_all, on=compare_cols, suffixes=("_old", "_new"), validate="one_to_one")
     same_identity = old_keys == new_keys
     same_scores = np.allclose(joined["score_weighted_old"], joined["score_weighted_new"], rtol=0, atol=1e-12)
@@ -126,18 +187,17 @@ def reproducibility_audit(ranking):
     tied_mismatch = position_mismatch & np.isclose(joined["score_weighted_old"], joined["score_weighted_new"], rtol=0, atol=1e-12)
     same_all = same_identity and same_scores and bool(np.all(~position_mismatch | tied_mismatch))
     same_top10 = new10.equals(old10)
-    lines = [
-        "# Reproducibility audit", "",
-        f"- Validation source: `results/multimodel/multi_model_feature_validation.csv`; counts: {ranking.groupby('dataset').size().to_dict()}.",
-        "- New score weights: silhouette=0.30, Calinski-Harabasz=0.30, Davies-Bouldin=0.30, ARI stability=0.10.",
-        f"- Complete ranking identities and scores match the existing sensitivity CSV at ARI=10%: `{same_identity and same_scores}`.",
-        f"- Any position differences are ties at the displayed score (historical floating-point tie ordering): `{same_all}`.",
-        f"- Top-10 identity matches the existing sensitivity CSV at ARI=10%: `{same_top10}`.",
-        "- Validation metrics are sample-based; assignments, profiles and projection figures are full-data fits with seed 42.",
-        "- Command: `conda run -n tfg python code/06_evaluation/final_alternatives_analysis.py`.",
-        "- Base Python could not run because `scikit-fuzzy` was absent; the `tfg` environment executed successfully.",
-        "- Existing `results/multimodel`, `results/profiles` and `results/final_alternatives` files were not overwritten.",
-    ]
+    lines = ["# Reproducibility audit", "", "## Comprobaciones actuales", "",
+        "- Entradas necesarias: correctas; universo filtrado: 175 configuraciones por dataset.",
+        "- Sensibilidad recalculada para ARI=0%, 10% y 25% desde los percentiles originales; no requiere reentrenamiento.",
+        "- El peso restante se reparte por igual entre silhouette, Calinski-Harabasz y Davies-Bouldin.",
+        "", "## Comparación histórica", "",
+        f"- Archivo histórico disponible: `{historical_path.relative_to(ROOT)}`.",
+        f"- Claves completas y puntuaciones ARI=10% coinciden: `{same_identity and same_scores}`.",
+        f"- Diferencias de posición explicables por empates: `{same_all}`.",
+        f"- Identidad del top-10 coincide: `{same_top10}`.",
+        "- La comparación empareja por dataset, subset, columnas, modelo y k; no usa índices de fila.",
+        "- Este informe no acredita por sí solo una ejecución completa ni un entorno concreto."]
     (OUT / "reproducibility_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 def fit_full(config, scaled, original):
@@ -230,7 +290,9 @@ def figures(results):
         fig.tight_layout(); fig.savefig(OUT / f"projections_{dataset}_ari10.png", dpi=160); plt.close(fig)
 
 def main():
+    validate_required_inputs()
     ranking = validation_outputs()
+    recalculate_sensitivity(pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv"))
     reproducibility_audit(ranking)
     config_manifest(ranking)
     winners = ranking.sort_values(["dataset", "position_weighted", "stability_ari", "silhouette"], ascending=[True, True, False, False]).groupby("dataset", sort=False).first()
