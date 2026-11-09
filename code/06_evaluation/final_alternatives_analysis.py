@@ -27,6 +27,8 @@ for _output_dir in (ROOT / "simple_datasets", ROOT / "extended_datasets",
     _output_dir.mkdir(parents=True, exist_ok=True)
 SEED = 42
 ARI_WEIGHT = 0.10
+SUMMARY_DETAIL_RTOL = 1e-8
+SUMMARY_DETAIL_ATOL = 1e-10
 PCA_SAMPLE = 10_000
 SCALED = {"hym": ROOT / "scaled_data" / "hym_scaled.csv", "instacart": ROOT / "scaled_data" / "instacart_scaled.csv"}
 ORIGINAL = {"hym": ROOT / "extended_datasets" / "hym_model_extended.csv", "instacart": ROOT / "extended_datasets" / "instacart_model_extended.csv"}
@@ -37,7 +39,7 @@ ID = {"hym": "customer_id", "instacart": "user_id"}
 # generated filenames and manifests.
 FINAL_CONFIGS = [
     dict(id="hym_kmeans_k6", dataset="hym", model="kmeans", k=6, features=["channel_2_ratio", "std_days_between_purchases", "avg_days_between_purchases"], roles=["descriptive_reference"]),
-    dict(id="instacart_fuzzy_k2_i2", dataset="instacart", model="fuzzy", k=2, features=["days_since_previous_order", "frequency", "avg_days_between_orders", "std_days_between_orders"], roles=["weighted_ranking_winner", "alternative"]),
+    dict(id="instacart_fuzzy_k2_i2", dataset="instacart", model="fuzzy", k=2, features=["days_since_previous_order", "frequency", "avg_days_between_orders", "std_days_between_orders"], roles=["alternative"]),
     dict(id="instacart_kmeans_k2_i2", dataset="instacart", model="kmeans", k=2, features=["days_since_previous_order", "frequency", "avg_days_between_orders", "std_days_between_orders"], roles=["descriptive_reference"]),
     dict(id="hym_fuzzy_k5_previous", dataset="hym", model="fuzzy", k=5, features=["channel_2_ratio", "std_days_between_purchases", "avg_days_between_purchases"], roles=["alternative", "historical_ranking_alternative"]),
 ]
@@ -108,8 +110,21 @@ def validate_required_inputs():
     if missing:
         raise FileNotFoundError(f"Faltan entradas necesarias: {missing}")
 
+def _format_diagnostic(row, metric, summary_value, detail_value, reason):
+    return {"dataset": row["dataset"], "subset": row["subset"],
+            "algorithm": row["model"], "k": row["k"], "metric": metric,
+            "summary_value": summary_value, "detail_value": detail_value,
+            "reason": reason}
+
+
 def validate_summary_detail(summary, detail):
-    """Require exactly three valid seed rows for every current summary key."""
+    """Check three valid seeds and arithmetic means without changing CSVs.
+
+    The summary and detail metrics are intentionally compared only where they
+    share the same definition: the summary is the arithmetic mean of seeds
+    42, 123 and 2026. A future semantic change must be documented instead of
+    being treated as a numerical mismatch.
+    """
     key = ["dataset", "subset", "columns", "model", "k"]
     detail_metrics = ["silhouette", "calinski_harabasz", "davies_bouldin"]
     required_detail = set(key + ["seed", "error", *detail_metrics])
@@ -119,6 +134,7 @@ def validate_summary_detail(summary, detail):
     if summary.duplicated(key).any():
         raise RuntimeError("Hay claves duplicadas en el resumen multimodelo")
     failures = []
+    diagnostics = []
     expected_seeds = {42, 123, 2026}
     for record in summary[key].to_dict("records"):
         mask = np.logical_and.reduce([detail[column].eq(value) for column, value in record.items()])
@@ -135,10 +151,45 @@ def validate_summary_detail(summary, detail):
             finite = np.isfinite(rows[detail_metrics].to_numpy()).all(axis=1)
             bad_seeds = rows.loc[~finite, "seed"].tolist()
             failures.append(f"{record} semillas con métricas no finitas={bad_seeds}")
+            continue
+        for metric in detail_metrics:
+            expected = rows[metric].mean()
+            observed = summary.loc[
+                np.logical_and.reduce([summary[column].eq(value) for column, value in record.items()]),
+                metric,
+            ].iloc[0]
+            if not np.isclose(observed, expected, rtol=SUMMARY_DETAIL_RTOL, atol=SUMMARY_DETAIL_ATOL):
+                diagnostics.append(_format_diagnostic(record, metric, observed, expected, "summary/detail mean mismatch"))
+    if diagnostics:
+        preview = "; ".join(str(d) for d in diagnostics[:10])
+        suffix = "" if len(diagnostics) <= 10 else f"; ... ({len(diagnostics)} discrepancies)"
+        raise RuntimeError("Summary/detail means outside tolerance: " + preview + suffix)
     if failures:
         preview = "; ".join(failures[:10])
         suffix = "" if len(failures) <= 10 else f"; ... ({len(failures)} fallos)"
         raise RuntimeError("Detalle multimodelo no certificado: " + preview + suffix)
+
+
+def validate_percentiles(summary):
+    """Check that ranking percentiles use each dataset's current universe."""
+    metric_specs = {
+        "pct_silhouette": ("silhouette", True),
+        "pct_calinski": ("calinski_harabasz", True),
+        "pct_davies": ("davies_bouldin", False),
+        "pct_stability": ("stability_ari", True),
+    }
+    diagnostics = []
+    for _, group in summary.groupby("dataset", sort=False):
+        for percentile, (metric, ascending) in metric_specs.items():
+            expected = group[metric].rank(pct=True, ascending=ascending)
+            bad = ~np.isclose(group[percentile], expected, rtol=0, atol=SUMMARY_DETAIL_ATOL)
+            for idx in group.index[bad]:
+                row = summary.loc[idx]
+                diagnostics.append(_format_diagnostic(row, metric, row[percentile], expected.loc[idx], "percentile mismatch"))
+    if diagnostics:
+        preview = "; ".join(str(d) for d in diagnostics[:10])
+        suffix = "" if len(diagnostics) <= 10 else f"; ... ({len(diagnostics)} discrepancies)"
+        raise RuntimeError("Ranking percentiles outside expected universe/order: " + preview + suffix)
 
 def validation_outputs():
     summary = pd.read_csv(ROOT / "results" / "multimodel" / "multi_model_feature_validation.csv")
@@ -158,6 +209,7 @@ def validation_outputs():
     if not np.isfinite(summary[metric_cols].to_numpy()).all():
         raise RuntimeError("Hay métricas no finitas en el resumen multimodelo")
     validate_summary_detail(summary, detail)
+    validate_percentiles(summary)
     ranking = rank_ari10(summary)
     ranking.to_csv(OUT / "ranking_ari10_complete.csv", index=False)
     ranking.groupby("dataset", sort=False).head(10).to_csv(OUT / "ranking_ari10_top10.csv", index=False)

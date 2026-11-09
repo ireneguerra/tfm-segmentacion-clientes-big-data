@@ -148,6 +148,12 @@ La comparación general puede ejecutarse después del primer modelado. Si se rea
 
 Los notebooks deben ejecutarse conservando la estructura de carpetas del proyecto y usando como directorio de trabajo la carpeta que contiene cada notebook cuando empleen rutas relativas. La documentación técnica ampliada (`PROJECT_DOCUMENTATION.md`) se mantiene como archivo local y está excluida del repositorio.
 
+## Reproducibilidad y figuras actuales
+
+El checkpoint multimodelo solo se reutiliza si esta completo y sus firmas, incluida `ALGORITHM_SIGNATURE`, coinciden. Un checkpoint parcial o antiguo se conserva intacto y exige una ruta nueva con `REANUDAR=False`; no se mezclan filas nuevas con historicas. `final_alternatives_analysis.py` comprueba semillas, valores finitos, medias resumen/detalle y percentiles por dataset antes de rankear, y diagnostica discrepancias sin modificar CSV historicos. Los roles `weighted_ranking_winner` se calculan desde las entradas actuales.
+
+Las celdas de H&M en `eda_hym.ipynb` exportan, solo al ejecutarse, `Images/precio_por_articulo.png` y `Images/evolucion_mensual.png`; la primera explicita el rango visible 0--0,20 aunque el maximo del conjunto es 0,59. La celda departamental de `eda_instacart.ipynb` exporta `Images/recompra_por_departamento.png`; la figura global de dos barras no debe confundirse con ella. Estas nuevas salidas no sustituyen figuras historicas automaticamente.
+
 ## Fuentes y uso de los datos
 
 Este proyecto utiliza los siguientes conjuntos de datos exclusivamente con fines académicos:
